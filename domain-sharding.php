@@ -3,7 +3,7 @@
 Plugin Name: Domain Sharding
 Description: This plugin allows us to change the root domain of images and stylesheets that currently are inside the actual domain and then use a domain sharding structure.
 Author: David Garcia
-Version: 1.0.0
+Version: 1.0.1
 */
 
 class domain_sharding
@@ -112,6 +112,7 @@ class domain_sharding
 		</tr>
 		</table>
 		<p>'.__('The final domain will follow the structure', $this->_slug ).' http://[domain][1-MaxDomain].[basedomain]</p>
+		<p>'.__('<strong>NOTE:</strong> You\'ll need to manually create the new A records for the subdomains in your DNS panel. They should have the same ip address of your main domain.').'</p>
 		<p class="submit"><input type="submit" value="Submit &raquo;" class="button button-primary"/></p>
 		</form>
 
