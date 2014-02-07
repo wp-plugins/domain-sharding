@@ -3,7 +3,7 @@
 Plugin Name: Domain Sharding
 Description: This plugin allows us to change the root domain of images and stylesheets that currently are inside the actual domain and then use a domain sharding structure.
 Author: David Garcia
-Version: 1.0.1
+Version: 1.0.2
 */
 
 class domain_sharding
@@ -18,6 +18,7 @@ class domain_sharding
 	var $home_len;
 	var $ds_domain;
 	var $ds_max;
+	var $ds_exclusions;
 
 	var $valid = false;
 
@@ -70,6 +71,7 @@ class domain_sharding
 		}
 		$this->ds_domain = trim($option['domain']);
 		$this->ds_max = intval($option['max']);
+		$this->ds_exclusions = explode("\n", $option['exclusions']);
 
 		$this->valid = !empty($this->ds_domain);
 	}
@@ -110,6 +112,13 @@ class domain_sharding
 			<th scope="row">Max domains</th>
 			<td><input id="domain_sharding_max" name="domain_sharding[max]" class="regular-text" value = "'. $option['max'].'" /></td>
 		</tr>
+		<tr valign="top">
+			<th scope="row">Exclusions</th>
+			<td>
+			<textarea id="domain_sharding_exclusions" name="domain_sharding[exclusions]" class="large-text" rows="10" cols="50">'. $option['exclusions'].'</textarea>
+			<p>'.__('Do not transform urls containing this words. One exception per line.', $this->_slug ).'</p>
+			</td>
+		</tr>
 		</table>
 		<p>'.__('The final domain will follow the structure', $this->_slug ).' http://[domain][1-MaxDomain].[basedomain]</p>
 		<p>'.__('<strong>NOTE:</strong> You\'ll need to manually create the new A records for the subdomains in your DNS panel. They should have the same ip address of your main domain.').'</p>
@@ -148,6 +157,25 @@ class domain_sharding
 			foreach( $urls as $url )
 			{
 				$original = $url;
+
+				$exclude = false;
+				if ( !empty($this->ds_exclusions) )
+				{
+					foreach( $this->ds_exclusions as $exclusion )
+					{
+						if ( stripos( $original, $exclusion) !== false )
+						{
+							$exclude = true;
+							break;
+						}
+					}
+				}
+
+				if ( $exclude )
+				{
+					continue;
+				}
+
 				if ( substr($url,0,1) == '/' )
 				{
 					$url = "/$url";
