@@ -1,6 +1,7 @@
 <?php
 /*
 Plugin Name: Domain Sharding
+Plugin URI: http://www.seocom.es
 Description: This plugin allows us to change the root domain of images and stylesheets that currently are inside the actual domain and then use a domain sharding structure.
 Author: David Garcia
 Version: 1.0.2
