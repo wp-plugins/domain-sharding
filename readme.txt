@@ -3,7 +3,7 @@ Contributors: sultanicq
 Tags: cdn, wpo, domain sharding, speed, optimization
 Requires at least: 2.8
 Tested up to: 3.8.1
-Stable tag: 1.0.3
+Stable tag: 1.0.4
 
 This plugin modify the url of the images to speed up the page browsing.
 
@@ -24,6 +24,9 @@ Visit the <a href="http://www.seocom.es/">Seocom website</a> for more informatio
 3. It's done. Easy, isn't it?
 
 == Changelog ==
+
+= 1.0.4 =
+* Added some tests to help us check for the validity of the desired subdomains. They are located in the Settings page.
 
 = 1.0.3 =
 * BugFix. The plugin now works with blogs not installed in the root domain.
