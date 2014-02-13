@@ -4,7 +4,7 @@ Plugin Name: Domain Sharding
 Plugin URI: http://www.seocom.es
 Description: This plugin allows us to change the root domain of images and stylesheets that currently are inside the actual domain and then use a domain sharding structure.
 Author: David Garcia
-Version: 1.0.4
+Version: 1.0.5
 */
 
 class domain_sharding
@@ -12,6 +12,8 @@ class domain_sharding
 	var $_slug;
 	var $_slugfile;
 	var $_hook;
+
+	var $_check_redirection = false;
 
 	var $main_domain_schema;
 	var $main_domain;
@@ -37,6 +39,11 @@ class domain_sharding
 
 		$this->set_home();
 		$this->set_ds();
+
+		if ( $this->_check_redirection )
+		{
+			add_action('init', array(&$this,'redirect_subdomain'), 5 );
+		}
 
 		if ( is_admin() )
 		{
@@ -81,11 +88,11 @@ class domain_sharding
 		$this->ds_max=0;
 		$this->ds_exclusions='';
 		$this->valid = false;
+		$this->_check_redirection = false;
 
 		$option = get_option('domain_sharding_config');
 		if ( !is_array($option) )
 		{
-			echo 2;die;
 			return;
 		}
 
@@ -94,6 +101,7 @@ class domain_sharding
 		$this->ds_exclusions = explode("\n", $option['exclusions']);
 
 		$this->valid = !empty($this->ds_domain);
+		$this->_check_redirection = !empty( $option['redirect'] );
 	}
 
 	function admin_menu()
@@ -197,6 +205,13 @@ class domain_sharding
 			}
 		}
 	
+		$redirect_checked = '';
+
+		if ( !empty($option['redirect']) )
+		{
+			$redirect_checked = ' checked="checked"';
+		}
+
 		print '
 		<div class="wrap">
 		<h2>Domain Sharding Settings</h2>
@@ -204,18 +219,25 @@ class domain_sharding
 		<form method="post" action="http://'.$_SERVER['HTTP_HOST'] . $_SERVER['REQUEST_URI'].'">
 		<table class="form-table">
 		<tr valign="top">
-			<th scope="row">Domain</th>
+			<th scope="row">'.__('Domain', $this->_slug ).'</th>
 			<td><input id="domain_sharding_domain" name="domain_sharding[domain]" class="regular-text" value = "'. $option['domain'].'" /></td>
 		</tr>
 		<tr valign="top">
-			<th scope="row">Max domains</th>
+			<th scope="row">'.__('Max domains', $this->_slug ).'</th>
 			<td><input id="domain_sharding_max" name="domain_sharding[max]" class="regular-text" value = "'. $option['max'].'" /></td>
 		</tr>
 		<tr valign="top">
-			<th scope="row">Exclusions</th>
+			<th scope="row">'.__('Exclusions', $this->_slug ).'</th>
 			<td>
 			<textarea id="domain_sharding_exclusions" name="domain_sharding[exclusions]" class="large-text" rows="10" cols="50">'. $option['exclusions'].'</textarea>
 			<p>'.__('Do not transform urls containing this words. One exception per line.', $this->_slug ).'</p>
+			</td>
+		</tr>
+		<tr valign="top">
+			<th scope="row">'.__('Redirect if the http host is not the blog domain', $this->_slug ).'</th>
+			<td>
+			<input type="checkbox" id="domain_sharding_redirect" name="domain_sharding[redirect]" value = "1" '.$redirect_checked.' />
+			<p>'.sprintf( __('Do a 301 redirection to the main address if the blog is not visited using the address <strong>%s</strong>', $this->_slug ), home_url() ).'</p>
 			</td>
 		</tr>
 		</table>
@@ -341,6 +363,18 @@ class domain_sharding
 
 		return $domain;
 	}
+
+	function redirect_subdomain()
+	{
+		$main_url = home_url();
+		$main_domain = parse_url( $main_url, PHP_URL_HOST );
+		if ( $_SERVER['HTTP_HOST'] != $main_domain )
+		{
+			wp_redirect($main_url, 301);
+			die;
+		}
+	}
+
 }
 
 $domain_sharding = new domain_sharding();
