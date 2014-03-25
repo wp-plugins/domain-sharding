@@ -23,6 +23,12 @@ Visit the <a href="http://www.seocom.es/">Seocom website</a> for more informatio
 2. Activate "Domain Sharding" plugin via WordPress Settings.
 3. It's done. Easy, isn't it?
 
+NOTE: If you have trouble accessing images using the new address because Wordpress asks you to register the domain then you must insert the following line in the file wp-config.php
+
+	include_once(ABSPATH.'wp-content/plugins/domain-sharding/domain-sharding-alias.php');
+
+NOTE: You'll need to manually create the new A records for the subdomains in your DNS panel. They should have the same ip address of your main domain.
+
 == Changelog ==
 
 = 1.1.0 =
