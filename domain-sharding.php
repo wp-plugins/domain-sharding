@@ -4,7 +4,7 @@ Plugin Name: Domain Sharding
 Plugin URI: http://www.seocom.es
 Description: This plugin allows us to change the root domain of images and stylesheets that currently are inside the actual domain and then use a domain sharding structure.
 Author: David Garcia
-Version: 1.0.5
+Version: 1.1.0
 */
 
 class domain_sharding
@@ -23,6 +23,7 @@ class domain_sharding
 	var $ds_domain;
 	var $ds_max;
 	var $ds_exclusions;
+	var $aliases_dir;
 
 	var $valid = false;
 
@@ -36,6 +37,7 @@ class domain_sharding
 		$this->_slug = basename(dirname(__FILE__));
 		$this->_slugfile = $this->_slug . '.php';
 		$this->_hook = basename(__FILE__);
+		$this->aliases_dir = dirname(__FILE__) . '/aliases/';
 
 		$this->set_home();
 		$this->set_ds();
@@ -75,8 +77,7 @@ class domain_sharding
 
 		$host_parsed = parse_url($this->home);
 
-		$host = array_reverse( explode('.', $host_parsed['host'] ) );
-		$host = $host[1].'.'.$host[0] . $host_parsed['path'];
+		$host = $host_parsed['host'] . $host_parsed['path'];
 
 		$this->main_domain = $host;
 		$this->main_domain_schema = $host_parsed['scheme'].'://';
@@ -115,6 +116,11 @@ class domain_sharding
 			$msg = sprintf( __( 'You need to <a href="%s">set up your Domain Sharding settings</a>.', $this->_slug ), $this->get_options_url() );
 			echo '<div class="error"><p>' . $msg . '</p></div>';
 		}
+		if ( !$this->domain_aliases_writable() )
+		{
+			$msg = sprintf( __( 'You need to set write permissions to the folder <strong>%s</strong>.', $this->_slug ), $this->aliases_dir );
+			echo '<div class="error"><p>' . $msg . '</p></div>';
+		}
 	}
 
 	function options_page()
@@ -124,6 +130,7 @@ class domain_sharding
 			update_option( 'domain_sharding_config', $_POST['domain_sharding'] );
 			$this->set_ds();
 			print '<div id="message" class="updated fade"><p><strong>'.__('Options updated.', $this->_slug ).'</strong> <a href="'.get_bloginfo('url').'">'.__('View site', $this->_slug ) . ' &raquo;</a></p></div>';
+			$this->write_domain_aliases();
 		}
 		$option = get_option('domain_sharding_config');
 
@@ -159,13 +166,12 @@ class domain_sharding
 
 							$ok = true;
 
-							$domain = $this->ds_build_domain( $this->ds_concat_subdomain( $this->ds_domain, $x ), false );
+							$domain = $this->ds_build_domain( $x, false );
 							$verify_result .= $domain . ': ';
-
 							$domain_ip = gethostbyname( $domain );
 							if ( $domain_ip != $main_domain_ip )
 							{
-								$verify_result .= ' ' . sprintf( __('The subdomain ip %s differs from the ip of main domain.',$this->_slug), $domain_ip );
+								$verify_result .= ' ' . sprintf( __('The subdomain ip <strong>%s</strong> differs from the ip of main domain.',$this->_slug), $domain_ip );
 								$ok = false;
 							}
 
@@ -212,6 +218,9 @@ class domain_sharding
 			$redirect_checked = ' checked="checked"';
 		}
 
+		$sharding_alias = dirname(__FILE__).'/';
+		$sharding_alias = str_replace(ABSPATH, '', $sharding_alias);
+
 		print '
 		<div class="wrap">
 		<h2>Domain Sharding Settings</h2>
@@ -220,7 +229,10 @@ class domain_sharding
 		<table class="form-table">
 		<tr valign="top">
 			<th scope="row">'.__('Domain', $this->_slug ).'</th>
-			<td><input id="domain_sharding_domain" name="domain_sharding[domain]" class="regular-text" value = "'. $option['domain'].'" /></td>
+			<td>
+			<input id="domain_sharding_domain" name="domain_sharding[domain]" class="regular-text" value = "'. $option['domain'].'" />
+			<p>'.__('You can use the # character to mark the point where the domain random number will be inserted.', $this->_slug ). ' ' .__('Eg: http://img#.domain.tld', $this->_slug ).'</p>
+			</td>
 		</tr>
 		<tr valign="top">
 			<th scope="row">'.__('Max domains', $this->_slug ).'</th>
@@ -241,7 +253,8 @@ class domain_sharding
 			</td>
 		</tr>
 		</table>
-		<p>'.__('The final domain will follow the structure', $this->_slug ).' http://[domain][1-MaxDomain].[basedomain]</p>
+		<p>'.__('<strong>NOTE:</strong> If you have trouble accessing images using the new address because Wordpress asks you to register the domain then you must insert the following line in the file wp-config.php').'</p>
+		<p><pre>include_once(ABSPATH.\''.$sharding_alias.'domain-sharding-alias.php\');</pre></p>
 		<p>'.__('<strong>NOTE:</strong> You\'ll need to manually create the new A records for the subdomains in your DNS panel. They should have the same ip address of your main domain.').'</p>
 		<p class="submit"><input type="submit" value="Submit &raquo;" class="button button-primary"/></p>
 		</form>
@@ -328,24 +341,28 @@ class domain_sharding
 		return $buffer;
 	}
 
-	function ds_concat_subdomain( $sub, $number )
-	{
-		return $sub.$number;
-	}
-
-	function ds_calc_subdomain( $value, $sub = 'cdn' )
+	function ds_calc_number( $value )
 	{
 		$number = abs( ( crc32( $value ) % $this->ds_max ) ) + 1;
-		
-		return $this->ds_concat_subdomain( $sub, $number );
+		return $number;
 	}
 
-	function ds_build_domain( $subdomain, $use_schema = true )
+	function ds_build_domain( $number, $use_schema = true )
 	{
-		$domain = $subdomain .'.'.$this->main_domain;
+		$domain = str_replace('#', $number, $this->ds_domain);
+
+		$host_parsed = parse_url($domain);
+
+		$domain = $host_parsed['host'] . $host_parsed['path'];
 		if ( $use_schema )
 		{
-			$domain = $this->main_domain_schema . $domain;
+			if ( empty($host_parsed['scheme']) )
+			{
+				$scheme = $this->main_domain_schema;
+			} else {
+				$scheme = $host_parsed['scheme'].'://';
+			}
+			$domain = $scheme . $domain;
 		}
 		return $domain;
 	}
@@ -356,9 +373,9 @@ class domain_sharding
 		{
 			return $value;
 		}
-		$subdomain = $this->ds_calc_subdomain( $value, $this->ds_domain );
+		$number = $this->ds_calc_number( $value );
 
-		$domain = $this->ds_build_domain($subdomain);
+		$domain = $this->ds_build_domain($number);
 		$domain = $domain . substr( $value, $this->home_len );
 
 		return $domain;
@@ -368,13 +385,61 @@ class domain_sharding
 	{
 		$main_url = home_url();
 		$main_domain = parse_url( $main_url, PHP_URL_HOST );
+
 		if ( $_SERVER['HTTP_HOST'] != $main_domain )
 		{
 			wp_redirect($main_url, 301);
 			die;
 		}
+		if ( isset($_SERVER['X-DS-HTTP_HOST']) && $_SERVER['X-DS-HTTP_HOST'] != $main_domain )
+		{
+			wp_redirect($main_url, 301);
+			die;
+		}
+
+
 	}
 
+	function domain_aliases_writable()
+	{
+		return is_writable($this->aliases_dir);
+	}
+
+	function write_domain_aliases()
+	{
+		if ( !$this->domain_aliases_writable() )
+		{
+			return false;
+		}
+
+		$blog_id = get_current_blog_id();
+		$option = get_option('domain_sharding_config');
+		$main_domain = parse_url( home_url(), PHP_URL_HOST );
+
+ 		$alias_file = $this->aliases_dir . sprintf('alias-domain-%d.php', $blog_id);
+
+ 		$max = intval($option['max']);
+
+		if ( !$max )
+		{
+			@unlink($alias_file);
+			return;
+		}
+
+		$data = "<?php
+if ( in_array(\$_SERVER"."['HTTP_HOST'], array(
+";
+
+		for($x=1;$x<=$max;$x++)
+		{
+			$domain = $this->ds_build_domain( $x, false );
+			$data .= "'$domain',\n";
+		}
+
+		$data .= ")) ){\$_SERVER"."['X-DS-HTTP_HOST']=\$_SERVER"."['HTTP_HOST'];\$_SERVER"."['HTTP_HOST']='$main_domain';}";
+
+		file_put_contents($alias_file, $data);
+	}
 }
 
 $domain_sharding = new domain_sharding();
