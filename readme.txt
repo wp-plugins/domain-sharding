@@ -15,7 +15,7 @@ The pattern will transform an url like this 'http://www.domain.tld/img/source1.j
 
 NOTE: If you have trouble accessing images using the new address because Wordpress asks you to register the domain then you must insert the following line in the file wp-config.php
 
-	include_once(ABSPATH.'wp-content/plugins/domain-sharding/domain-sharding-alias.php');
+	include_once(ABSPATH.'wp-content/plugins/domain-sharding/domain-sharding-alias.php'); 
 
 Then you need to be sure to set write permissions to the aliases folder located within the plugin directory.
 
