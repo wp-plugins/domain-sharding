@@ -424,8 +424,6 @@ class domain_sharding
 			wp_redirect($main_url, 301);
 			die;
 		}
-
-
 	}
 
 	function domain_aliases_writable()
