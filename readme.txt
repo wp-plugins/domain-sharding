@@ -3,7 +3,7 @@ Contributors: sultanicq
 Tags: cdn, wpo, domain sharding, speed, optimization
 Requires at least: 2.8
 Tested up to: 3.8.1
-Stable tag: 1.1.2
+Stable tag: 1.1.3
 
 This plugin modify the url of the images to speed up the page browsing.
 
@@ -36,6 +36,9 @@ NOTE: If you have trouble accessing images using the new address because Wordpre
 NOTE: You'll need to manually create the new A records for the subdomains in your DNS panel. They should have the same ip address of your main domain.
 
 == Changelog ==
+
+= 1.1.3 =
+* Fixed re-activation detection when upgrading plugin.
 
 = 1.1.2 =
 * Forced a reset of the domain variable to avoid problems if we detect an upgrade from a previous version.

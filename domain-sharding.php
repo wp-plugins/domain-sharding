@@ -4,7 +4,7 @@ Plugin Name: Domain Sharding
 Plugin URI: http://www.seocom.es
 Description: This plugin allows us to change the root domain of images and stylesheets that currently are inside the actual domain and then use a domain sharding structure.
 Author: David Garcia
-Version: 1.1.2
+Version: 1.1.3
 */
 
 class domain_sharding
@@ -49,11 +49,6 @@ class domain_sharding
 
 		if ( is_admin() )
 		{
-			if (function_exists('register_activation_hook'))
-			{
-				register_activation_hook(__FILE__, array(&$this, 'activate'));
-			}
-
 			add_action('admin_menu', array(&$this, 'admin_menu') );
 			add_action('admin_notices', array( $this, 'show_messages' ) );
 			add_filter('plugin_action_links', array( $this, 'plugin_action_links' ), 10, 2 );
@@ -63,20 +58,6 @@ class domain_sharding
 		if ( $this->valid )
 		{
 			add_action('init', array(&$this,'process'), 100);
-		}
-	}
-
-	function activate()
-	{
-		$option = get_option('domain_sharding_config');
-		if ( !empty($option['domain'] ) )
-		{
-			if ( substr_count($option['domain'], '.')<=1 )
-			{
-				// We were still using an old version.
-				$option['domain']='';
-				update_option('domain_sharding_config', $option);
-			}
 		}
 	}
 
@@ -117,6 +98,14 @@ class domain_sharding
 		}
 
 		$this->ds_domain = trim($option['domain']);
+		if ( substr_count($option['domain'], '.')<=1 )
+		{
+			// We were still using an old version.
+			$option['domain']='';
+			update_option('domain_sharding_config', $option);
+			$this->ds_domain='';
+		}
+
 		$this->ds_max = intval($option['max']);
 		$this->ds_exclusions = explode("\n", $option['exclusions']);
 
