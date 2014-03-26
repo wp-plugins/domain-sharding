@@ -4,7 +4,7 @@ Plugin Name: Domain Sharding
 Plugin URI: http://www.seocom.es
 Description: This plugin allows us to change the root domain of images and stylesheets that currently are inside the actual domain and then use a domain sharding structure.
 Author: David Garcia
-Version: 1.1.5
+Version: 1.1.6
 */
 
 class domain_sharding
@@ -161,9 +161,16 @@ class domain_sharding
 				{
 					$plugin_url = plugin_dir_url(__FILE__);
 
+					$main_check_response = '';
 					// Get the contents of the test file.
 					$main_check_file = 'domain.check.valid.txt';
 					$main_check_value = wp_remote_get($plugin_url . $main_check_file );
+
+					if ( isset( $main_check_value['response']['code'] ) )
+					{
+						$main_check_response = @$main_check_value['response']['code'] . ' ' . @$main_check_value['response']['message'];
+					}
+
 					if ( is_array( $main_check_value ) && $main_check_value['response']['code']=='200' )
 					{
 						$main_check_value = $main_check_value['body'];
@@ -221,7 +228,7 @@ class domain_sharding
 
 						}
 					} else {
-						$verify_result .= ' <strong style="color:#F00;text-decoration:uppercase;">'.__('The file used to check the subdomain configuration is missing. Try reinstalling the plugin.', $this->_slug).'</strong>';
+						$verify_result .= ' <strong style="color:#F00;text-decoration:uppercase;">'.__('The file used to check the subdomain configuration is missing. Try reinstalling the plugin.', $this->_slug).'</strong> Server Response Code: ' . $main_check_response;
 					}
 				}
 			} else {
@@ -364,13 +371,17 @@ class domain_sharding
 		return $number;
 	}
 
-	function ds_build_domain( $number, $use_schema = true )
+	function ds_build_domain( $number, $use_schema = true, $use_path = true )
 	{
 		$domain = str_replace('#', $number, $this->ds_domain);
 
 		$host_parsed = parse_url($domain);
 
-		$domain = $host_parsed['host'] . $host_parsed['path'];
+		$domain = $host_parsed['host'];
+		if ( $use_path && !empty($host_parsed['path']) )
+		{
+			$domain .= $host_parsed['path'];
+		}
 		if ( $use_schema )
 		{
 			if ( empty($host_parsed['scheme']) )
@@ -449,7 +460,7 @@ if ( in_array(\$_SERVER"."['HTTP_HOST'], array(
 
 		for($x=1;$x<=$max;$x++)
 		{
-			$domain = $this->ds_build_domain( $x, false );
+			$domain = $this->ds_build_domain( $x, false, false );
 			$data .= "'$domain',\n";
 		}
 
