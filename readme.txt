@@ -2,7 +2,7 @@
 Contributors: sultanicq
 Tags: cdn, wpo, domain sharding, speed, optimization
 Requires at least: 2.8
-Tested up to: 3.8.1
+Tested up to: 4.0.0
 Stable tag: 1.1.6
 
 This plugin modify the url of the images to speed up the page browsing.
