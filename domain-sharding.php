@@ -4,7 +4,7 @@ Plugin Name: Domain Sharding
 Plugin URI: http://www.seocom.es
 Description: This plugin allows us to change the root domain of images and stylesheets that currently are inside the actual domain and then use a domain sharding structure.
 Author: David Garcia
-Version: 1.1.7
+Version: 1.1.8
 */
 
 class domain_sharding
@@ -23,6 +23,7 @@ class domain_sharding
 	var $ds_domain;
 	var $ds_max;
 	var $ds_exclusions;
+	var $_remove_protocol = false;
 	var $aliases_dir;
 
 	var $valid = false;
@@ -90,6 +91,7 @@ class domain_sharding
 		$this->ds_exclusions='';
 		$this->valid = false;
 		$this->_check_redirection = false;
+		$this->_remove_protocol = false;
 
 		$option = get_option('domain_sharding_config');
 		if ( !is_array($option) )
@@ -121,6 +123,7 @@ class domain_sharding
 
 		$this->valid = !empty($this->ds_domain);
 		$this->_check_redirection = !empty( $option['redirect'] );
+		$this->_remove_protocol = !empty( $option['protocol_less'] );
 	}
 
 	function admin_menu()
@@ -237,10 +240,15 @@ class domain_sharding
 		}
 	
 		$redirect_checked = '';
-
 		if ( !empty($option['redirect']) )
 		{
 			$redirect_checked = ' checked="checked"';
+		}
+
+		$protocol_less_checked = '';
+		if ( !empty($option['protocol_less']) )
+		{
+			$protocol_less_checked = ' checked="checked"';
 		}
 
 		$sharding_alias = dirname(__FILE__).'/';
@@ -275,6 +283,13 @@ class domain_sharding
 			<td>
 			<input type="checkbox" id="domain_sharding_redirect" name="domain_sharding[redirect]" value = "1" '.$redirect_checked.' />
 			<p>'.sprintf( __('Do a 301 redirection to the main address if the blog is not visited using the address <strong>%s</strong>', $this->_slug ), home_url() ).'</p>
+			</td>
+		</tr>
+		<tr valign="top">
+			<th scope="row">'.__('Use protocol less urls', $this->_slug ).'</th>
+			<td>
+			<input type="checkbox" id="domain_sharding_protocol_less" name="domain_sharding[protocol_less]" value = "1" '.$protocol_less_checked.' />
+			<p>'. __('Use addresses like "//img#.domain.tld" instead of "http://img#.domain.tld"', $this->_slug ).'</p>
 			</td>
 		</tr>
 		</table>
@@ -363,6 +378,11 @@ class domain_sharding
 				if ( $original == $url )
 				{
 					continue;
+				}
+
+				if ( $this->_remove_protocol )
+				{
+					$url = str_replace('http://', '//', $url);
 				}
 
 				$buffer = str_ireplace( '"'.$original, '"'.$url, $buffer );
